@@ -1,27 +1,30 @@
-package manager
+package process
 
 import (
 	model2 "github.com/candbright/server-mc/internal/model"
 	"github.com/candbright/server-mc/pkg/fm"
 	"github.com/magiconair/properties"
 	"github.com/pkg/errors"
+	"path"
 	"reflect"
 )
 
 type Config struct {
-	AllowListPath   string
-	PermissionsPath string
-}
-type Manager struct {
-	AllowListManager   *fm.FileManager[model2.AllowList]
-	PermissionsManager *fm.FileManager[model2.Permissions]
+	RootDir        string
+	AllowListFile  string
+	PropertiesFile string
 }
 
-func New(cfg *Config) *Manager {
-	manager := &Manager{
-		AllowListManager: fm.Default[model2.AllowList](cfg.AllowListPath),
-		PermissionsManager: fm.New[model2.Permissions](&fm.Config{
-			Path: cfg.PermissionsPath,
+type Process struct {
+	AllowListFile  *fm.FileManager[model2.AllowList]
+	PropertiesFile *fm.FileManager[model2.Properties]
+}
+
+func New(cfg *Config) *Process {
+	manager := &Process{
+		AllowListFile: fm.Default[model2.AllowList](path.Join(cfg.RootDir, cfg.AllowListFile)),
+		PropertiesFile: fm.New[model2.Properties](&fm.Config{
+			Path: path.Join(cfg.RootDir, cfg.PropertiesFile),
 			Marshal: func(v any) ([]byte, error) {
 				newProperties := Encode(v)
 				return []byte(newProperties.String()), nil

@@ -2,20 +2,20 @@ package service
 
 import (
 	"github.com/candbright/server-mc/internal/errors"
+	"github.com/candbright/server-mc/internal/manager/process"
 	"github.com/candbright/server-mc/internal/model"
-	"github.com/candbright/server-mc/internal/server/manager"
 )
 
 type AllowListService struct {
-	Manager *manager.Manager
+	Manager *process.Process
 }
 
 func (service *AllowListService) List() model.AllowList {
-	return service.Manager.AllowListManager.Data
+	return service.Manager.AllowListFile.Data
 }
 
 func (service *AllowListService) Get(xuid string) (model.AllowListUser, error) {
-	for _, user := range service.Manager.AllowListManager.Data {
+	for _, user := range service.Manager.AllowListFile.Data {
 		if user.XUid == xuid {
 			return user, nil
 		}

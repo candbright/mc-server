@@ -1,5 +1,5 @@
 package model
 
-type Permissions struct {
+type Properties struct {
 	A string `properties:"a"`
 }
