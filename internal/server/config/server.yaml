@@ -1,0 +1,10 @@
+application:
+  name: server-mc
+  port: 11451
+log:
+  path:
+    windows: D:\log\server-mc\server.log
+    linux: /var/log/server-mc/server.log
+  level:
+    default: info
+    env: ${PS_LOG_LEVEL}
