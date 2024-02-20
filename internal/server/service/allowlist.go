@@ -11,11 +11,11 @@ type AllowListService struct {
 }
 
 func (service *AllowListService) List() model.AllowList {
-	return service.Manager.AllowListFile.Data
+	return service.Manager.AllowList.AllowListFile.Data
 }
 
 func (service *AllowListService) Get(xuid string) (model.AllowListUser, error) {
-	for _, user := range service.Manager.AllowListFile.Data {
+	for _, user := range service.Manager.AllowList.AllowListFile.Data {
 		if user.XUid == xuid {
 			return user, nil
 		}
