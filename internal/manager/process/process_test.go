@@ -4,15 +4,13 @@ import "testing"
 
 func TestNew(t *testing.T) {
 	process := New(&Config{
-		RootDir:        ".",
-		AllowListFile:  "allowlist.json",
-		PropertiesFile: "server.properties",
+		RootDir: ".",
 	})
-	t.Log(process.PropertiesFile.Data.A)
-	process.PropertiesFile.Data.A = "test change"
-	err := process.PropertiesFile.Write()
+	t.Log(process.ServerProperties.FileManager.Data.A)
+	process.ServerProperties.FileManager.Data.A = "test change"
+	err := process.ServerProperties.FileManager.Write()
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(process.PropertiesFile.Data.A)
+	t.Log(process.ServerProperties.FileManager.Data.A)
 }

@@ -10,32 +10,37 @@ type Config struct {
 }
 
 type Manager struct {
-	*DownloadManager
-	Server *process.Process
+	*DownloadUtil
+	*process.Process
 }
 
 func New(cfg *Config) *Manager {
+	download := &DownloadUtil{
+		RootDir: cfg.RootDir,
+		Version: cfg.Version,
+	}
+	p := process.New(&process.Config{
+		RootDir: download.ServerDir(),
+	})
 	manager := &Manager{
-		DownloadManager: &DownloadManager{
-			RootDir: cfg.RootDir,
-			Version: cfg.Version,
-		},
-		Server: process.New(&process.Config{
-			RootDir:        cfg.RootDir,
-			AllowListFile:  "allowlist.json",
-			PropertiesFile: "server.properties",
-		}),
+		DownloadUtil: download,
+		Process:      p,
 	}
 	return manager
 }
 
+func (m *Manager) LatestVersion() string {
+	//TODO
+	return ""
+}
+
 func (m *Manager) Upgrade() error {
 	//1. 获取最新版本
-	oldDownload := m.DownloadManager
-	newVersion := ""
+	oldDownload := m.DownloadUtil
+	newVersion := m.LatestVersion()
 	//2. 若最新版本和当前版本不同，则下载最新版本
 	if newVersion != oldDownload.Version {
-		newDownload := &DownloadManager{
+		newDownload := &DownloadUtil{
 			RootDir: m.RootDir,
 			Version: newVersion,
 		}
@@ -43,8 +48,9 @@ func (m *Manager) Upgrade() error {
 		if err != nil {
 			return err
 		}
-		m.DownloadManager = newDownload
+		m.DownloadUtil = newDownload
 	}
-	//3. 复制旧版本文件到新版本
+	//3. 复制旧版本数据文件到新版本
+	//TODO
 	return nil
 }
