@@ -28,6 +28,13 @@ func TestDownloadUtil_ZipExist(t *testing.T) {
 	t.Log(exist)
 }
 
+func TestManager_Download(t *testing.T) {
+	err := testManager.Download()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestManager_Upgrade(t *testing.T) {
 	err := testManager.Upgrade()
 	if err != nil {
