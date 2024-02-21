@@ -1,11 +1,12 @@
 package manager
 
 import (
+	"path"
+
 	"github.com/candbright/go-ssh/ssh"
 	"github.com/candbright/go-ssh/ssh/options"
 	"github.com/candbright/server-mc/internal/manager/process"
 	"github.com/go-resty/resty/v2"
-	"path"
 )
 
 type Config struct {
@@ -17,8 +18,8 @@ type Config struct {
 type Manager struct {
 	Session ssh.Session
 	*VersionInfo
-	*process.Process
-	client *resty.Client
+	Process *process.Process
+	client  *resty.Client
 }
 
 func New(cfg *Config) *Manager {
@@ -30,15 +31,21 @@ func New(cfg *Config) *Manager {
 		RootDir: cfg.RootDir,
 		Version: cfg.Version,
 	}
-	p := process.New(&process.Config{
-		RootDir: versionInfo.ServerDir(),
-		Session: session,
-	})
 	manager := &Manager{
 		Session:     session,
 		VersionInfo: versionInfo,
-		Process:     p,
 		client:      resty.New(),
+	}
+	exist, err := manager.ServerExist()
+	if err != nil {
+		panic(err)
+	}
+	if exist {
+		p := process.New(&process.Config{
+			RootDir: versionInfo.ServerDir(),
+			Session: session,
+		})
+		manager.Process = p
 	}
 	return manager
 }
@@ -86,10 +93,20 @@ func (m *Manager) Download() error {
 	}
 
 	//3. 解压zip文件
-	err = m.Session.Run("unzip", m.ZipFilePath(), "-d", m.RootDir)
+	err = m.Session.MakeDirAll(m.ServerDir(), 0777)
 	if err != nil {
 		return err
 	}
+	err = m.Session.Run("unzip", m.ZipFilePath(), "-d", m.ServerDir())
+	if err != nil {
+		return err
+	}
+	//4. 创建process
+	p := process.New(&process.Config{
+		RootDir: m.ServerDir(),
+		Session: m.Session,
+	})
+	m.Process = p
 	return nil
 }
 
@@ -105,6 +122,10 @@ func (m *Manager) Upgrade() error {
 		m.VersionInfo = &VersionInfo{
 			RootDir: m.RootDir,
 			Version: newVersion,
+		}
+		err := m.Download()
+		if err != nil {
+			return err
 		}
 	}
 	//3. 复制旧版本数据文件到新版本

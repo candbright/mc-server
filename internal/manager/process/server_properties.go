@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"embed"
 	_ "embed"
-	model2 "github.com/candbright/server-mc/internal/model"
+	"html/template"
+	"path"
+
+	"github.com/candbright/server-mc/internal/model"
 	"github.com/candbright/server-mc/pkg/fm"
 	"github.com/magiconair/properties"
 	"github.com/pkg/errors"
-	"html/template"
-	"path"
 )
 
 //go:embed template
@@ -20,11 +21,11 @@ const (
 )
 
 type ServerProperties struct {
-	FileManager *fm.FileManager[model2.Properties]
+	FileManager *fm.FileManager[model.Properties_1_20_62_02]
 }
 
 func NewServerProperties(dir string) *ServerProperties {
-	fileManager := fm.New[model2.Properties](&fm.Config{
+	fileManager := fm.New[model.Properties_1_20_62_02](&fm.Config{
 		Path:    path.Join(dir, PropertiesFile),
 		Marshal: Encode,
 		Unmarshal: func(data []byte, v any) error {

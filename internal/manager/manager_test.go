@@ -36,7 +36,14 @@ func TestManager_Download(t *testing.T) {
 }
 
 func TestManager_Upgrade(t *testing.T) {
-	err := testManager.Upgrade()
+	var oldManager = New(&Config{
+		Version: "1.20.15.01",
+		RootDir: "/home/lighthouse",
+		/*SSHOptions: []options.Option{
+			options.RemoteHostPWD("", 22, "", ""),
+		},*/
+	})
+	err := oldManager.Upgrade()
 	if err != nil {
 		t.Fatal(err)
 	}
