@@ -1,14 +1,17 @@
 package manager
 
 import (
+	"github.com/candbright/go-ssh/ssh"
+	"github.com/candbright/go-ssh/ssh/options"
 	"github.com/candbright/server-mc/internal/manager/process"
 	"github.com/go-resty/resty/v2"
-	"github.com/pkg/errors"
+	"path"
 )
 
 type Config struct {
-	Version string
-	RootDir string
+	Version    string
+	RootDir    string
+	SSHOptions []options.Option
 }
 
 type Manager struct {
@@ -18,9 +21,14 @@ type Manager struct {
 }
 
 func New(cfg *Config) *Manager {
+	session, err := ssh.NewSession(cfg.SSHOptions...)
+	if err != nil {
+		panic(err)
+	}
 	download := &DownloadUtil{
 		RootDir: cfg.RootDir,
 		Version: cfg.Version,
+		Session: session,
 	}
 	p := process.New(&process.Config{
 		RootDir: download.ServerDir(),
@@ -34,12 +42,13 @@ func New(cfg *Config) *Manager {
 }
 
 func (m *Manager) LatestVersion() (string, error) {
-	resp, err := m.client.R().
+	/*resp, err := m.client.R().
 		Get("https://www.minecraft.net/en-us/download/server/bedrock")
 	if err != nil {
 		return "", errors.WithStack(err)
 	}
-	return string(resp.Body()), nil
+	return string(resp.Body()), nil*/
+	return "1.20.62.02", nil
 }
 
 func (m *Manager) Upgrade() error {
@@ -62,6 +71,23 @@ func (m *Manager) Upgrade() error {
 		m.DownloadUtil = newDownload
 	}
 	//3. 复制旧版本数据文件到新版本
-	//TODO
+	err = m.DownloadUtil.Session.Run("cp", "-r",
+		path.Join(oldDownload.ServerDir(), "world"),
+		path.Join(m.DownloadUtil.ServerDir()+"/"))
+	if err != nil {
+		return err
+	}
+	err = m.DownloadUtil.Session.Run("cp",
+		path.Join(oldDownload.ServerDir(), "allowlist.json"),
+		path.Join(m.DownloadUtil.ServerDir(), "allowlist.json"))
+	if err != nil {
+		return err
+	}
+	err = m.DownloadUtil.Session.Run("cp",
+		path.Join(oldDownload.ServerDir(), "server.properties"),
+		path.Join(m.DownloadUtil.ServerDir(), "server.properties"))
+	if err != nil {
+		return err
+	}
 	return nil
 }

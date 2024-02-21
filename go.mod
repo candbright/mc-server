@@ -12,7 +12,7 @@ require (
 require golang.org/x/net v0.17.0 // indirect
 
 require (
-	github.com/candbright/go-ssh v1.0.1 // indirect
+	github.com/candbright/go-ssh v1.0.1
 	github.com/go-resty/resty/v2 v2.11.0
 	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/crypto v0.19.0 // indirect
