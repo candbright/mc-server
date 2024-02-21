@@ -1,13 +1,19 @@
 package process
 
 import (
+	"bytes"
+	"embed"
+	_ "embed"
 	model2 "github.com/candbright/server-mc/internal/model"
 	"github.com/candbright/server-mc/pkg/fm"
 	"github.com/magiconair/properties"
 	"github.com/pkg/errors"
+	"html/template"
 	"path"
-	"reflect"
 )
+
+//go:embed template
+var serverPropertiesTmpl embed.FS
 
 const (
 	PropertiesFile = "server.properties"
@@ -19,11 +25,8 @@ type ServerProperties struct {
 
 func NewServerProperties(dir string) *ServerProperties {
 	fileManager := fm.New[model2.Properties](&fm.Config{
-		Path: path.Join(dir, PropertiesFile),
-		Marshal: func(v any) ([]byte, error) {
-			newProperties := Encode(v)
-			return []byte(newProperties.String()), nil
-		},
+		Path:    path.Join(dir, PropertiesFile),
+		Marshal: Encode,
 		Unmarshal: func(data []byte, v any) error {
 			p := properties.MustLoadString(string(data))
 			err := p.Decode(v)
@@ -38,18 +41,15 @@ func NewServerProperties(dir string) *ServerProperties {
 	}
 }
 
-func Encode(v any) *properties.Properties {
-	newProperties := properties.NewProperties()
-	structType := reflect.TypeOf(v)
-	structValue := reflect.ValueOf(v)
-	for i := 0; i < structType.NumField(); i++ {
-		field := structType.Field(i)
-		value := structValue.Field(i).Interface()
-		tag := field.Tag.Get("properties")
-		err := newProperties.SetValue(tag, value)
-		if err != nil {
-			return newProperties
-		}
+func Encode(v any) ([]byte, error) {
+	content, err := template.ParseFS(serverPropertiesTmpl, path.Join("template", PropertiesFile))
+	if err != nil {
+		return nil, errors.WithStack(err)
 	}
-	return newProperties
+	var result bytes.Buffer
+	err = content.Execute(&result, v)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return result.Bytes(), nil
 }

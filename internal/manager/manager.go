@@ -15,7 +15,8 @@ type Config struct {
 }
 
 type Manager struct {
-	*DownloadUtil
+	Session ssh.Session
+	*VersionInfo
 	*process.Process
 	client *resty.Client
 }
@@ -25,18 +26,19 @@ func New(cfg *Config) *Manager {
 	if err != nil {
 		panic(err)
 	}
-	download := &DownloadUtil{
+	versionInfo := &VersionInfo{
 		RootDir: cfg.RootDir,
 		Version: cfg.Version,
-		Session: session,
 	}
 	p := process.New(&process.Config{
-		RootDir: download.ServerDir(),
+		RootDir: versionInfo.ServerDir(),
+		Session: session,
 	})
 	manager := &Manager{
-		DownloadUtil: download,
-		Process:      p,
-		client:       resty.New(),
+		Session:     session,
+		VersionInfo: versionInfo,
+		Process:     p,
+		client:      resty.New(),
 	}
 	return manager
 }
@@ -51,43 +53,104 @@ func (m *Manager) LatestVersion() (string, error) {
 	return "1.20.62.02", nil
 }
 
+func (m *Manager) ZipExist() (bool, error) {
+	//zip文件是否存在
+	return m.Session.Exists(m.ZipFilePath())
+}
+
+func (m *Manager) ServerExist() (bool, error) {
+	//服务器目录是否存在
+	return m.Session.Exists(m.ServerDir())
+}
+
+func (m *Manager) Download() error {
+	//1. 检测是否存在当前版本的服务器目录
+	existS, err := m.ServerExist()
+	if err != nil {
+		return err
+	}
+	if existS {
+		return nil
+	}
+	//2. 不存在当前版本的服务器目录，则检测是否存在当前版本的zip文件
+	existZ, err := m.ZipExist()
+	if err != nil {
+		return err
+	}
+	//2. 不存在当前版本的zip文件，先下载
+	if !existZ {
+		err = m.Session.Run("wget", m.DownloadUrl(), "-P", m.RootDir)
+		if err != nil {
+			return err
+		}
+	}
+
+	//3. 解压zip文件
+	err = m.Session.Run("unzip", m.ZipFilePath(), "-d", m.RootDir)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (m *Manager) Upgrade() error {
 	//1. 获取最新版本
-	oldDownload := m.DownloadUtil
+	oldVersionInfo := m.VersionInfo
 	newVersion, err := m.LatestVersion()
 	if err != nil {
 		return err
 	}
 	//2. 若最新版本和当前版本不同，则下载最新版本
-	if newVersion != oldDownload.Version {
-		newDownload := &DownloadUtil{
+	if newVersion != oldVersionInfo.Version {
+		m.VersionInfo = &VersionInfo{
 			RootDir: m.RootDir,
 			Version: newVersion,
 		}
-		err = newDownload.Download()
+	}
+	//3. 复制旧版本数据文件到新版本
+	err = m.Session.Run("cp", "-r",
+		path.Join(oldVersionInfo.ServerDir(), "world"),
+		path.Join(m.VersionInfo.ServerDir()+"/"))
+	if err != nil {
+		return err
+	}
+	err = m.Session.Run("cp",
+		path.Join(oldVersionInfo.ServerDir(), "allowlist.json"),
+		path.Join(m.VersionInfo.ServerDir(), "allowlist.json"))
+	if err != nil {
+		return err
+	}
+	err = m.Session.Run("cp",
+		path.Join(oldVersionInfo.ServerDir(), "server.properties"),
+		path.Join(m.VersionInfo.ServerDir(), "server.properties"))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Manager) Delete() error {
+	//1. 删除服务器目录
+	existS, err := m.ServerExist()
+	if err != nil {
+		return err
+	}
+	if existS {
+		err = m.Session.RemoveAll(m.ServerDir())
 		if err != nil {
 			return err
 		}
-		m.DownloadUtil = newDownload
 	}
-	//3. 复制旧版本数据文件到新版本
-	err = m.DownloadUtil.Session.Run("cp", "-r",
-		path.Join(oldDownload.ServerDir(), "world"),
-		path.Join(m.DownloadUtil.ServerDir()+"/"))
+	//2. 删除zip文件
+	existZ, err := m.ZipExist()
 	if err != nil {
 		return err
 	}
-	err = m.DownloadUtil.Session.Run("cp",
-		path.Join(oldDownload.ServerDir(), "allowlist.json"),
-		path.Join(m.DownloadUtil.ServerDir(), "allowlist.json"))
-	if err != nil {
-		return err
-	}
-	err = m.DownloadUtil.Session.Run("cp",
-		path.Join(oldDownload.ServerDir(), "server.properties"),
-		path.Join(m.DownloadUtil.ServerDir(), "server.properties"))
-	if err != nil {
-		return err
+	if existZ {
+		err = m.Session.Remove(m.ZipFilePath())
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

@@ -1,16 +1,25 @@
 package process
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
-func TestNew(t *testing.T) {
+func TestNewServerProperties(t *testing.T) {
 	process := New(&Config{
 		RootDir: ".",
 	})
-	t.Log(process.ServerProperties.FileManager.Data.A)
-	process.ServerProperties.FileManager.Data.A = "test change"
+	t.Log(process.ServerProperties.FileManager.Data.ServerName)
+}
+
+func TestServerPropertiesWrite(t *testing.T) {
+	process := New(&Config{
+		RootDir: ".",
+	})
+	process.ServerProperties.FileManager.Data.ServerName = "NewServer"
 	err := process.ServerProperties.FileManager.Write()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal(fmt.Sprintf("%+v", err))
 	}
-	t.Log(process.ServerProperties.FileManager.Data.A)
+	t.Log(process.ServerProperties.FileManager.Data.ServerName)
 }
