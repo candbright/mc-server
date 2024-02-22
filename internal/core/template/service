@@ -1,9 +1,9 @@
 [Unit]
-Description=mc-server daemon
+Description={{.ServiceName}} daemon
 
 [Service]
-EnvironmentFile=-/etc/sysconfig/mc-server
-ExecStart=/opt/bin/mc-server $OPTIONS
+EnvironmentFile=-{{.EnvironmentFile}}
+ExecStart={{.ExecStart}}
 ExecReload=/bin/kill -HUP $MAINPID
 KillMode=process
 Restart=on-failure

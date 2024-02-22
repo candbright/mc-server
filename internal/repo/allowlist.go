@@ -1,4 +1,4 @@
-package model
+package repo
 
 type AllowList []AllowListUser
 

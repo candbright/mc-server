@@ -2,6 +2,6 @@ package handler
 
 import "github.com/candbright/server-mc/internal/server/service"
 
-type AllowListHandler struct {
-	service *service.AllowListService
+type ServerInfoHandler struct {
+	service *service.ServerInfoService
 }

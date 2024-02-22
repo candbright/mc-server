@@ -1,6 +1,8 @@
 package log
 
-import "go.uber.org/zap"
+import (
+	"go.uber.org/zap"
+)
 
 var globalConfig *Config
 var loggers = make(map[string]*zap.Logger)
